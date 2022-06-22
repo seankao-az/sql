@@ -121,11 +121,8 @@ export function getQueryResultsForTable(
         let queryType = 'default';
 
         for (const column of schema.values()) {
-          if (_.isEqual(_.get(column, 'name'), 'TABLE_NAME')) {
+          if (_.isEqual(_.get(column, 'name'), 'REF_GENERATION')) {
             queryType = 'show';
-            for (const col of schema.values()) {
-              if (_.isEqual(_.get(col, 'name'), 'DATA_TYPE')) queryType = 'describe';
-            }
           }
         }
 
@@ -152,7 +149,6 @@ export function getQueryResultsForTable(
             }
             break;
 
-          case 'describe':
           case 'default':
             for (const [id, field] of schema.entries()) {
               let alias: any = null;
