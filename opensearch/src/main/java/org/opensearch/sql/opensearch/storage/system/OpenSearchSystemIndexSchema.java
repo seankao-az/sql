@@ -7,6 +7,7 @@
 package org.opensearch.sql.opensearch.storage.system;
 
 import static org.opensearch.sql.data.type.ExprCoreType.STRING;
+import static org.opensearch.sql.data.type.ExprCoreType.INTEGER;
 
 import com.google.common.collect.ImmutableMap;
 import java.util.LinkedHashMap;
@@ -46,14 +47,14 @@ public enum OpenSearchSystemIndexSchema {
       .put("COLUMN_SIZE", STRING)
       .put("BUFFER_LENGTH", STRING)
       .put("DECIMAL_DIGITS", STRING)
-      .put("NUM_PREC_RADIX", STRING)
-      .put("NULLABLE", STRING)
+      .put("NUM_PREC_RADIX", INTEGER)
+      .put("NULLABLE", INTEGER)
       .put("REMARKS", STRING)
       .put("COLUMN_DEF", STRING)
       .put("SQL_DATA_TYPE", STRING)
       .put("SQL_DATETIME_SUB", STRING)
       .put("CHAR_OCTET_LENGTH", STRING)
-      .put("ORDINAL_POSITION", STRING)
+      .put("ORDINAL_POSITION", INTEGER)
       .put("IS_NULLABLE", STRING)
       .put("SCOPE_CATALOG", STRING)
       .put("SCOPE_SCHEMA", STRING)
