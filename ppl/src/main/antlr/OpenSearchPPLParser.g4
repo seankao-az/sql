@@ -309,7 +309,8 @@ tableSource
     ;
 
 clusterTableSource
-    : clusterQualifiedName
+    : qualifiedName
+    | clusterQualifiedName
     | ID_DATE_SUFFIX
     ;
 
@@ -600,7 +601,7 @@ qualifiedName
     ;
 
 clusterQualifiedName
-    : (ident COLON)? ident (DOT ident)*
+    : ident COLON ident (DOT ident)*
     ;
 
 wcQualifiedName
