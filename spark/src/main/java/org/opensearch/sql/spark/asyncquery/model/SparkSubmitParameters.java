@@ -5,6 +5,7 @@
 
 package org.opensearch.sql.spark.asyncquery.model;
 
+import static org.opensearch.sql.datasources.cloudwatchlog.CWLDataSourceFactory.*;
 import static org.opensearch.sql.datasources.glue.GlueDataSourceFactory.GLUE_INDEX_STORE_OPENSEARCH_AUTH;
 import static org.opensearch.sql.datasources.glue.GlueDataSourceFactory.GLUE_INDEX_STORE_OPENSEARCH_AUTH_PASSWORD;
 import static org.opensearch.sql.datasources.glue.GlueDataSourceFactory.GLUE_INDEX_STORE_OPENSEARCH_AUTH_USERNAME;
@@ -52,9 +53,12 @@ public class SparkSubmitParameters {
           HADOOP_CATALOG_CREDENTIALS_PROVIDER_FACTORY_KEY,
           DEFAULT_GLUE_CATALOG_CREDENTIALS_PROVIDER_FACTORY_KEY);
       config.put(
-          SPARK_JAR_PACKAGES_KEY,
-          SPARK_STANDALONE_PACKAGE + "," + SPARK_LAUNCHER_PACKAGE + "," + PPL_STANDALONE_PACKAGE);
-      config.put(SPARK_JAR_REPOSITORIES_KEY, AWS_SNAPSHOT_REPOSITORY);
+          SPARK_JARS_KEY,
+          SPARK_STANDALONE_JAR + "," + SPARK_LAUNCHER_JAR + "," + PPL_STANDALONE_JAR + "," + CLOUDWATCHLOG_CATALOG_JAR);
+      // config.put(
+      //     SPARK_JAR_PACKAGES_KEY,
+      //     SPARK_STANDALONE_PACKAGE + "," + SPARK_LAUNCHER_PACKAGE + "," + PPL_STANDALONE_PACKAGE);
+      // config.put(SPARK_JAR_REPOSITORIES_KEY, AWS_SNAPSHOT_REPOSITORY);
       config.put(SPARK_DRIVER_ENV_JAVA_HOME_KEY, JAVA_HOME_LOCATION);
       config.put(SPARK_EXECUTOR_ENV_JAVA_HOME_KEY, JAVA_HOME_LOCATION);
       config.put(FLINT_INDEX_STORE_HOST_KEY, FLINT_DEFAULT_HOST);
@@ -89,6 +93,38 @@ public class SparkSubmitParameters {
             () -> metadata.getProperties().get(GLUE_INDEX_STORE_OPENSEARCH_AUTH_PASSWORD),
             () -> metadata.getProperties().get(GLUE_INDEX_STORE_OPENSEARCH_REGION));
         config.put("spark.flint.datasource.name", metadata.getName());
+        return this;
+      } else if (DataSourceType.CLOUDWATCHLOG.equals(metadata.getConnector())) {
+        // TODO: lots of similarities to glue
+        // TODO: CWL_AUTH_TYPE
+        String roleArn = metadata.getProperties().get(CWL_AUTH_ROLE_ARN);
+
+        // TODO: remove when no S3 dependency for DAL fat jar
+        String flintOpensearchServiceRole = "arn:aws:iam::924196221507:role/FlintOpensearchServiceRole";
+        config.put(DRIVER_ENV_ASSUME_ROLE_ARN_KEY, flintOpensearchServiceRole);
+        config.put(EXECUTOR_ENV_ASSUME_ROLE_ARN_KEY, flintOpensearchServiceRole);
+
+        config.put("spark.sql.catalog." + metadata.getName(), CLOUDWATCHLOG_CATALOG);
+        // TODO: error handling
+        // TODO: update LogsCatalog to take arn
+        String accountId = roleArn.split(":")[4];
+        String roleName = roleArn.substring(roleArn.lastIndexOf('/') + 1);
+        config.put("spark.sql.catalog." + metadata.getName() + ".accountId", accountId);
+        config.put("spark.sql.catalog." + metadata.getName() + ".accessRole", roleName);
+        config.put("spark.sql.catalog." + metadata.getName() + ".region",
+            metadata.getProperties().get(CWL_REGION));
+        // TODO: "gamma" for dev, normally it should be "prod"
+        // Should it be a config for datasource?
+        config.put("spark.sql.catalog." + metadata.getName() + ".stage", "gamma");
+
+        setFlintIndexStoreHost(
+            parseUri(
+                metadata.getProperties().get(CWL_INDEX_STORE_OPENSEARCH_URI), metadata.getName()));
+        setFlintIndexStoreAuthProperties(
+            metadata.getProperties().get(CWL_INDEX_STORE_OPENSEARCH_AUTH),
+            () -> metadata.getProperties().get(CWL_INDEX_STORE_OPENSEARCH_AUTH_USERNAME),
+            () -> metadata.getProperties().get(CWL_INDEX_STORE_OPENSEARCH_AUTH_PASSWORD),
+            () -> metadata.getProperties().get(CWL_INDEX_STORE_OPENSEARCH_REGION));
         return this;
       }
       throw new UnsupportedOperationException(

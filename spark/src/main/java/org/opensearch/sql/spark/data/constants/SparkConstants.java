@@ -19,14 +19,28 @@ public class SparkConstants {
 
   // EMR-S will download JAR to local maven
   public static final String SPARK_SQL_APPLICATION_JAR =
-      "file:///home/hadoop/.ivy2/jars/org.opensearch_opensearch-spark-sql-application_2.12-0.1.0-SNAPSHOT.jar";
+      // "file:///home/hadoop/.ivy2/jars/org.opensearch_opensearch-spark-sql-application_2.12-0.1.0-SNAPSHOT.jar";
+      "s3://flint-data-dp-eu-west-1-beta/code/flint/cwl-dev/opensearch-spark-sql-application_2.12-0.1.0-SNAPSHOT.jar";
   public static final String SPARK_RESPONSE_BUFFER_INDEX_NAME = ".query_execution_result";
   // TODO should be replaced with mvn jar.
   public static final String FLINT_INTEGRATION_JAR =
-      "s3://spark-datasource/flint-spark-integration-assembly-0.1.0-SNAPSHOT.jar";
+      // "s3://spark-datasource/flint-spark-integration-assembly-0.1.0-SNAPSHOT.jar";
+      "s3://flint-data-dp-eu-west-1-beta/code/flint/cwl-dev/flint-spark-integration-assembly-0.1.0-SNAPSHOT.jar";
+  public static final String SPARK_STANDALONE_JAR =
+      "s3://flint-data-dp-eu-west-1-beta/code/flint/cwl-dev/opensearch-spark-standalone_2.12-0.1.0-SNAPSHOT.jar";
+      // "s3://flint-data-dp-eu-west-1-beta/code/flint/cwl-dev/opensearch-spark-standalone-assembly-0.1.0-SNAPSHOT.jar";
+  public static final String SPARK_LAUNCHER_JAR =
+      "s3://flint-data-dp-eu-west-1-beta/code/flint/cwl-dev/opensearch-spark-sql-application_2.12-0.1.0-SNAPSHOT.jar";
+      // "s3://flint-data-dp-eu-west-1-beta/code/flint/cwl-dev/opensearch-spark-sql-application-assembly-0.1.0-SNAPSHOT.jar";
+  public static final String PPL_STANDALONE_JAR =
+      "s3://flint-data-dp-eu-west-1-beta/code/flint/cwl-dev/opensearch-spark-ppl_2.12-0.1.0-SNAPSHOT.jar";
+      // "s3://flint-data-dp-eu-west-1-beta/code/flint/cwl-dev/opensearch-spark-ppl-assembly-0.1.0-SNAPSHOT.jar";
   // TODO should be replaced with mvn jar.
   public static final String FLINT_CATALOG_JAR =
       "s3://flint-data-dp-eu-west-1-beta/code/flint/flint-catalog.jar";
+  // TODO should be replaced with mvn jar.
+  public static final String CLOUDWATCHLOG_CATALOG_JAR =
+      "s3://flint-data-dp-eu-west-1-beta/code/flint/cwl-dev/AWSLogsDALConnectorSparkFatJar-1.0.jar";
   public static final String FLINT_DEFAULT_HOST = "localhost";
   public static final String FLINT_DEFAULT_PORT = "9200";
   public static final String FLINT_DEFAULT_SCHEME = "http";
@@ -42,6 +56,7 @@ public class SparkConstants {
   public static final String HADOOP_CATALOG_CREDENTIALS_PROVIDER_FACTORY_KEY =
       "spark.hadoop.aws.catalog.credentials.provider.factory.class";
   public static final String HIVE_METASTORE_GLUE_ARN_KEY = "spark.hive.metastore.glue.role.arn";
+  public static final String SPARK_JARS_KEY = "spark.jars";
   public static final String SPARK_JAR_PACKAGES_KEY = "spark.jars.packages";
   public static final String SPARK_JAR_REPOSITORIES_KEY = "spark.jars.repositories";
   public static final String SPARK_DRIVER_ENV_JAVA_HOME_KEY =
@@ -78,6 +93,7 @@ public class SparkConstants {
       "com.amazonaws.glue.catalog.metastore.AWSGlueDataCatalogHiveClientFactory";
   public static final String FLINT_DELEGATE_CATALOG =
       "org.opensearch.sql.FlintDelegatingSessionCatalog";
+  public static final String CLOUDWATCHLOG_CATALOG = "com.amazon.awslogscatalog.LogsCatalog";
   public static final String FLINT_SQL_EXTENSION =
       "org.opensearch.flint.spark.FlintSparkExtensions";
   public static final String FLINT_PPL_EXTENSION =
