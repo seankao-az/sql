@@ -35,6 +35,7 @@ import org.opensearch.cluster.node.DiscoveryNodes;
 import org.opensearch.cluster.service.ClusterService;
 import org.opensearch.common.inject.Injector;
 import org.opensearch.common.inject.ModulesBuilder;
+import org.opensearch.common.inject.Provider;
 import org.opensearch.common.settings.ClusterSettings;
 import org.opensearch.common.settings.IndexScopedSettings;
 import org.opensearch.common.settings.Setting;
@@ -127,7 +128,6 @@ public class SQLPlugin extends Plugin implements ActionPlugin, ScriptPlugin {
 
   private NodeClient client;
   private DataSourceServiceImpl dataSourceService;
-  private AsyncQueryExecutorService asyncQueryExecutorService;
   private Injector injector;
 
   public String name() {
@@ -223,22 +223,6 @@ public class SQLPlugin extends Plugin implements ActionPlugin, ScriptPlugin {
     dataSourceService.createDataSource(defaultOpenSearchDataSourceMetadata());
     LocalClusterState.state().setClusterService(clusterService);
     LocalClusterState.state().setPluginSettings((OpenSearchSettings) pluginSettings);
-    SparkExecutionEngineConfigSupplier sparkExecutionEngineConfigSupplier =
-        new SparkExecutionEngineConfigSupplierImpl(pluginSettings);
-    SparkExecutionEngineConfig sparkExecutionEngineConfig =
-        sparkExecutionEngineConfigSupplier.getSparkExecutionEngineConfig();
-    if (StringUtils.isEmpty(sparkExecutionEngineConfig.getRegion())) {
-      LOGGER.warn(
-          String.format(
-              "Async Query APIs are disabled as %s is not configured properly in cluster settings. "
-                  + "Please configure and restart the domain to enable Async Query APIs",
-              SPARK_EXECUTION_ENGINE_CONFIG.getKeyValue()));
-      this.asyncQueryExecutorService = new AsyncQueryExecutorServiceImpl();
-    } else {
-      this.asyncQueryExecutorService =
-          createAsyncQueryExecutorService(
-              sparkExecutionEngineConfigSupplier, sparkExecutionEngineConfig);
-    }
 
     ModulesBuilder modules = new ModulesBuilder();
     modules.add(new OpenSearchPluginModule());
@@ -247,6 +231,7 @@ public class SQLPlugin extends Plugin implements ActionPlugin, ScriptPlugin {
           b.bind(NodeClient.class).toInstance((NodeClient) client);
           b.bind(org.opensearch.sql.common.setting.Settings.class).toInstance(pluginSettings);
           b.bind(DataSourceService.class).toInstance(dataSourceService);
+          b.bind(AsyncQueryExecutorService.class).toProvider(new AsyncQueryExecutorServiceProvider());
         });
 
     injector = modules.createInjector();
@@ -261,7 +246,7 @@ public class SQLPlugin extends Plugin implements ActionPlugin, ScriptPlugin {
             OpenSearchSettings.AUTO_INDEX_MANAGEMENT_ENABLED_SETTING,
             environment.settings());
     return ImmutableList.of(
-        dataSourceService, asyncQueryExecutorService, clusterManagerEventListener, pluginSettings);
+        dataSourceService, clusterManagerEventListener, pluginSettings);
   }
 
   @Override
@@ -317,6 +302,27 @@ public class SQLPlugin extends Plugin implements ActionPlugin, ScriptPlugin {
             .build(),
         dataSourceMetadataStorage,
         dataSourceUserAuthorizationHelper);
+  }
+
+  private class AsyncQueryExecutorServiceProvider implements Provider<AsyncQueryExecutorService> {
+    @Override
+    public AsyncQueryExecutorService get() {
+      SparkExecutionEngineConfigSupplier sparkExecutionEngineConfigSupplier =
+          new SparkExecutionEngineConfigSupplierImpl(
+              new OpenSearchSettings(SQLPlugin.this.clusterService.getClusterSettings()));
+      SparkExecutionEngineConfig sparkExecutionEngineConfig =
+          sparkExecutionEngineConfigSupplier.getSparkExecutionEngineConfig();
+      if (StringUtils.isEmpty(sparkExecutionEngineConfig.getRegion())) {
+        LOGGER.warn(
+            String.format(
+                "Async Query APIs are disabled as %s is not configured properly in cluster settings. "
+                    + "Please configure and restart the domain to enable Async Query APIs",
+                SPARK_EXECUTION_ENGINE_CONFIG.getKeyValue()));
+        return new AsyncQueryExecutorServiceImpl();
+      } else {
+        return createAsyncQueryExecutorService(sparkExecutionEngineConfigSupplier, sparkExecutionEngineConfig);
+      }
+    }
   }
 
   private AsyncQueryExecutorService createAsyncQueryExecutorService(
