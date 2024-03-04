@@ -11,5 +11,6 @@ public enum IndexQueryActionType {
   REFRESH,
   DESCRIBE,
   SHOW,
-  DROP
+  DROP,
+  SHOW_IN_CATALOGDB // TODO: or SHOW_FLINT? It's different from SHOW for one kind of index
 }

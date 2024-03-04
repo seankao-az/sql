@@ -256,6 +256,15 @@ public class SQLQueryUtils {
     }
 
     @Override
+    public Void visitShowFlintIndexStatement(
+        FlintSparkSqlExtensionsParser.ShowFlintIndexStatementContext ctx) {
+      indexQueryDetailsBuilder.indexQueryActionType(IndexQueryActionType.SHOW_IN_CATALOGDB);
+      indexQueryDetailsBuilder.indexType(FlintIndexType.MATERIALIZED_VIEW);
+      indexQueryDetailsBuilder.catalogDb(ctx.catalogDb.getText());
+      return super.visitShowFlintIndexStatement(ctx);
+    }
+
+    @Override
     public Void visitPropertyList(FlintSparkSqlExtensionsParser.PropertyListContext ctx) {
       if (ctx != null) {
         ctx.property()

@@ -48,6 +48,7 @@ import org.opensearch.index.query.QueryBuilders;
 import org.opensearch.search.builder.SearchSourceBuilder;
 import org.opensearch.sql.spark.asyncquery.model.AsyncQueryJobMetadata;
 import org.opensearch.sql.spark.dispatcher.model.IndexDMLResult;
+import org.opensearch.sql.spark.dispatcher.model.IndexManagementResult;
 import org.opensearch.sql.spark.execution.session.SessionModel;
 import org.opensearch.sql.spark.execution.session.SessionState;
 import org.opensearch.sql.spark.execution.session.SessionType;
@@ -328,9 +329,15 @@ public class StateStore {
             st, FlintIndexStateModel::copy, DATASOURCE_TO_REQUEST_INDEX.apply(datasourceName));
   }
 
+  // TODO: createStateModel<? extends StateModel, ?> for show flint index result
   public static Function<IndexDMLResult, IndexDMLResult> createIndexDMLResult(
       StateStore stateStore, String indexName) {
     return (result) -> stateStore.create(result, IndexDMLResult::copy, indexName);
+  }
+
+  public static Function<IndexManagementResult, IndexManagementResult> createIndexManagementResult(
+      StateStore stateStore, String indexName) {
+    return (result) -> stateStore.create(result, IndexManagementResult::copy, indexName);
   }
 
   public static Supplier<Long> activeRefreshJobCount(StateStore stateStore, String datasourceName) {

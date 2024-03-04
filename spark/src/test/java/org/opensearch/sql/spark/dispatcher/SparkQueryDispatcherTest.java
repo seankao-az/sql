@@ -686,6 +686,28 @@ public class SparkQueryDispatcherTest {
   }
 
   @Test
+  void testDispatchShowFlintIndexQuery() {
+    // TODO: should only test dispatch here, not the actual result
+    HashMap<String, String> tags = new HashMap<>();
+    tags.put(DATASOURCE_TAG_KEY, "my_glue");
+    tags.put(CLUSTER_NAME_TAG_KEY, TEST_CLUSTER_NAME);
+    String query = "SHOW FLINT INDEX IN my_glue";
+    DataSourceMetadata dataSourceMetadata = constructMyGlueDataSourceMetadata();
+    when(dataSourceService.getRawDataSourceMetadata("my_glue")).thenReturn(dataSourceMetadata);
+    doNothing().when(dataSourceUserAuthorizationHelper).authorizeDataSource(dataSourceMetadata);
+    DispatchQueryResponse dispatchQueryResponse =
+        sparkQueryDispatcher.dispatch(
+            new DispatchQueryRequest(
+                EMRS_APPLICATION_ID,
+                query,
+                "my_glue",
+                LangType.SQL,
+                EMRS_EXECUTION_ROLE,
+                TEST_CLUSTER_NAME));
+    // TODO: and then?
+  }
+
+  @Test
   void testRefreshIndexQuery() {
     HashMap<String, String> tags = new HashMap<>();
     tags.put(DATASOURCE_TAG_KEY, "my_glue");

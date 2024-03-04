@@ -12,6 +12,9 @@ import lombok.Data;
 
 @Data
 public class FlintIndexMetadata {
+  public static final String NAME_KEY = "name";
+  public static final String KIND_KEY = "kind";
+  public static final String SOURCE_KEY = "source";
   public static final String PROPERTIES_KEY = "properties";
   public static final String ENV_KEY = "env";
   public static final String OPTIONS_KEY = "options";
@@ -23,12 +26,20 @@ public class FlintIndexMetadata {
   public static final String APP_ID = "SERVERLESS_EMR_VIRTUAL_CLUSTER_ID";
   public static final String FLINT_INDEX_STATE_DOC_ID = "latestId";
 
+  private final String name;
+  private final String kind;
+  private final String source;
   private final String jobId;
   private final boolean autoRefresh;
   private final String appId;
   private final String latestId;
 
   public static FlintIndexMetadata fromMetatdata(Map<String, Object> metaMap) {
+    // TODO: test
+    String name =  (String) metaMap.get(NAME_KEY);
+    String kind = (String) metaMap.get(KIND_KEY);
+    String source = (String) metaMap.get(SOURCE_KEY);
+
     Map<String, Object> propertiesMap = (Map<String, Object>) metaMap.get(PROPERTIES_KEY);
     Map<String, Object> envMap = (Map<String, Object>) propertiesMap.get(ENV_KEY);
     Map<String, Object> options = (Map<String, Object>) metaMap.get(OPTIONS_KEY);
@@ -40,7 +51,7 @@ public class FlintIndexMetadata {
             .equalsIgnoreCase(AUTO_REFRESH_DEFAULT);
     String appId = (String) envMap.getOrDefault(APP_ID, null);
     String latestId = (String) metaMap.getOrDefault(FLINT_INDEX_STATE_DOC_ID, null);
-    return new FlintIndexMetadata(jobId, autoRefresh, appId, latestId);
+    return new FlintIndexMetadata(name, kind, source, jobId, autoRefresh, appId, latestId);
   }
 
   public Optional<String> getLatestId() {

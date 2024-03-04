@@ -91,18 +91,24 @@ public class SparkQueryDispatcher {
         // manual refresh should be handled by batch handler
         asyncQueryHandler =
             new BatchQueryHandler(emrServerlessClient, jobExecutionResponseReader, leaseManager);
+      } else if (IndexQueryActionType.SHOW_IN_CATALOGDB.equals(indexQueryDetails.getIndexQueryActionType())) {
+        asyncQueryHandler = createIndexManagementHandler();
       }
     }
     return asyncQueryHandler.submit(dispatchQueryRequest, contextBuilder.build());
   }
 
+  // TODO: too many branches?
   public JSONObject getQueryResponse(AsyncQueryJobMetadata asyncQueryJobMetadata) {
     EMRServerlessClient emrServerlessClient = emrServerlessClientFactory.getClient();
     if (asyncQueryJobMetadata.getSessionId() != null) {
       return new InteractiveQueryHandler(sessionManager, jobExecutionResponseReader, leaseManager)
           .getQueryResponse(asyncQueryJobMetadata);
     } else if (IndexDMLHandler.isIndexDMLQuery(asyncQueryJobMetadata.getJobId())) {
+      // TODO: facade (IndexQueryHandler decides type of query and give corresponding index query handler, which is an abstract class having 2 subclasses for dml and show statement)
       return createIndexDMLHandler(emrServerlessClient).getQueryResponse(asyncQueryJobMetadata);
+    } else if (IndexManagementHandler.isIndexManagementQuery(asyncQueryJobMetadata.getJobId())) {
+      return createIndexManagementHandler().getQueryResponse(asyncQueryJobMetadata);
     } else {
       return new BatchQueryHandler(emrServerlessClient, jobExecutionResponseReader, leaseManager)
           .getQueryResponse(asyncQueryJobMetadata);
@@ -117,6 +123,9 @@ public class SparkQueryDispatcher {
           new InteractiveQueryHandler(sessionManager, jobExecutionResponseReader, leaseManager);
     } else if (IndexDMLHandler.isIndexDMLQuery(asyncQueryJobMetadata.getJobId())) {
       queryHandler = createIndexDMLHandler(emrServerlessClient);
+    } else if (IndexManagementHandler.isIndexManagementQuery(asyncQueryJobMetadata.getJobId())) {
+      // TODO: need this?
+      queryHandler = createIndexManagementHandler();
     } else {
       queryHandler =
           new BatchQueryHandler(emrServerlessClient, jobExecutionResponseReader, leaseManager);
@@ -129,6 +138,14 @@ public class SparkQueryDispatcher {
         emrServerlessClient,
         dataSourceService,
         dataSourceUserAuthorizationHelper,
+        jobExecutionResponseReader,
+        flintIndexMetadataReader,
+        client,
+        stateStore);
+  }
+
+  private IndexManagementHandler createIndexManagementHandler() {
+    return new IndexManagementHandler(
         jobExecutionResponseReader,
         flintIndexMetadataReader,
         client,

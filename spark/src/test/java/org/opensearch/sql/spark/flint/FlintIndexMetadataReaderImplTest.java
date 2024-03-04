@@ -9,7 +9,9 @@ import com.google.common.base.Charsets;
 import com.google.common.io.Resources;
 import java.io.IOException;
 import java.net.URL;
+import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 import lombok.SneakyThrows;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
@@ -77,6 +79,30 @@ public class FlintIndexMetadataReaderImplTest {
 
   @SneakyThrows
   @Test
+  void testGetJobIdFromGetAllFlintIndexMetadata() {
+    URL url1 =
+        Resources.getResource("flint-index-mappings/flint_mys3_default_http_logs_skipping_index.json");
+    String mappings1 = Resources.toString(url1, Charsets.UTF_8);
+    String indexName1 = "flint_mys3_default_http_logs_skipping_index";
+    URL url2 =
+        Resources.getResource("flint-index-mappings/flint_mys3_default_http_logs_cv1_index.json");
+    String mappings2 = Resources.toString(url2, Charsets.UTF_8);
+    String indexName2 = "flint_mys3_default_http_logs_cv1_index";
+    Map<String, String> allMappings = Map.of(indexName1, mappings1, indexName2, mappings2);
+    mockNodeClientMultipleIndicesMappings(allMappings);
+
+    FlintIndexMetadataReader flintIndexMetadataReader = new FlintIndexMetadataReaderImpl(client);
+    Map<String, FlintIndexMetadata> indexMetadatas =
+        flintIndexMetadataReader.getAllFlintIndexMetadata(
+            IndexQueryDetails.builder()
+                .catalogDb("mys3")
+                .build());
+    Assertions.assertEquals("00fdmvv9hp8u0o0q", indexMetadatas.get(indexName1).getJobId());
+    Assertions.assertEquals("00fdmvv9hp8u0o0q", indexMetadatas.get(indexName2).getJobId());
+  }
+
+  @SneakyThrows
+  @Test
   void testGetJobIDWithNPEException() {
     URL url = Resources.getResource("flint-index-mappings/npe_mapping.json");
     String mappings = Resources.toString(url, Charsets.UTF_8);
@@ -99,13 +125,28 @@ public class FlintIndexMetadataReaderImplTest {
     Assertions.assertEquals("Provided Index doesn't exist", illegalArgumentException.getMessage());
   }
 
-  @SneakyThrows
   public void mockNodeClientIndicesMappings(String indexName, String mappings) {
     GetMappingsResponse mockResponse = mock(GetMappingsResponse.class);
     when(client.admin().indices().prepareGetMappings(any()).get()).thenReturn(mockResponse);
     Map<String, MappingMetadata> metadata;
-    metadata = Map.of(indexName, IndexMetadata.fromXContent(createParser(mappings)).mapping());
+    metadata = Map.of(indexName, parseMappingMetadata(mappings));
     when(mockResponse.mappings()).thenReturn(metadata);
+  }
+
+  public void mockNodeClientMultipleIndicesMappings(Map<String, String> allMappings) {
+    GetMappingsResponse mockResponse = mock(GetMappingsResponse.class);
+    when(client.admin().indices().prepareGetMappings(any()).get()).thenReturn(mockResponse);
+    Map<String, MappingMetadata> metadata;
+    metadata = allMappings.entrySet().stream()
+        .collect(Collectors.toMap(
+            entry -> entry.getKey(),
+            entry -> parseMappingMetadata(entry.getValue())));
+    when(mockResponse.mappings()).thenReturn(metadata);
+  }
+
+  @SneakyThrows
+  private MappingMetadata parseMappingMetadata(String mappings) {
+    return IndexMetadata.fromXContent(createParser(mappings)).mapping();
   }
 
   private XContentParser createParser(String mappings) throws IOException {

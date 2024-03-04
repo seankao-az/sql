@@ -22,6 +22,7 @@ import org.opensearch.sql.spark.rest.model.CreateAsyncQueryResponse;
 import org.opensearch.sql.spark.rest.model.LangType;
 
 public class IndexQuerySpecTest extends AsyncQueryExecutorServiceSpec {
+  // TODO: test case here
 
   public final FlintDatasetMock LEGACY_SKIPPING =
       new FlintDatasetMock(
@@ -37,7 +38,7 @@ public class IndexQuerySpecTest extends AsyncQueryExecutorServiceSpec {
           .isLegacy(true);
   public final FlintDatasetMock LEGACY_MV =
       new FlintDatasetMock(
-              "DROP MATERIALIZED VIEW mv", FlintIndexType.MATERIALIZED_VIEW, "flint_mv")
+              "DROP MATERIALIZED VIEW mv", FlintIndexType.MATERIALIZED_VIEW, "flint_mys3_default_mv")
           .isLegacy(true);
 
   public final FlintDatasetMock SKIPPING =
@@ -54,7 +55,7 @@ public class IndexQuerySpecTest extends AsyncQueryExecutorServiceSpec {
           .latestId("coveringid");
   public final FlintDatasetMock MV =
       new FlintDatasetMock(
-              "DROP MATERIALIZED VIEW mv", FlintIndexType.MATERIALIZED_VIEW, "flint_mv")
+              "DROP MATERIALIZED VIEW mv", FlintIndexType.MATERIALIZED_VIEW, "flint_mys3_default_mv")
           .latestId("mvid");
 
   /**
@@ -196,6 +197,66 @@ public class IndexQuerySpecTest extends AsyncQueryExecutorServiceSpec {
               assertEquals("FAILED", asyncQueryResults.getStatus());
               assertEquals("cancel job timeout", asyncQueryResults.getError());
             });
+  }
+
+  /**
+   * TODO: update comment
+   * Happy case. expectation is
+   *
+   * <p>(1) Drop Index response is SUCCESS (2) change index state to: DELETED
+   */
+  @Test
+  public void showFlintIndex() {
+    LocalEMRSClient emrsClient =
+        new LocalEMRSClient() {
+          @Override
+          public GetJobRunResult getJobRunResult(String applicationId, String jobId) {
+            return new GetJobRunResult().withJobRun(new JobRun().withState("Cancelled"));
+          }
+        };
+    EMRServerlessClientFactory emrServerlessClientFactory =
+        new EMRServerlessClientFactory() {
+          @Override
+          public EMRServerlessClient getClient() {
+            return emrsClient;
+          }
+        };
+    AsyncQueryExecutorService asyncQueryExecutorService =
+        createAsyncQueryExecutorService(emrServerlessClientFactory);
+    String showFlintIndexQuery = "SHOW FLINT INDEX in mys3";
+
+    // Mock flint index
+    SKIPPING.createIndex();
+    COVERING.createIndex();
+    MV.createIndex();
+    // Mock index state
+    MockFlintSparkJob flintIndexJobSkipping = new MockFlintSparkJob(SKIPPING.latestId);
+    flintIndexJobSkipping.refreshing();
+    MockFlintSparkJob flintIndexJobCovering = new MockFlintSparkJob(COVERING.latestId);
+    flintIndexJobCovering.refreshing();
+    MockFlintSparkJob flintIndexJobMv = new MockFlintSparkJob(MV.latestId);
+    flintIndexJobMv.refreshing();
+
+    // 1.show index
+    CreateAsyncQueryResponse response =
+        asyncQueryExecutorService.createAsyncQuery(
+            new CreateAsyncQueryRequest(showFlintIndexQuery, DATASOURCE, LangType.SQL, null));
+
+    assertNotNull(response.getQueryId());
+
+    // 2.fetch result
+    AsyncQueryExecutionResponse asyncQueryResults =
+        asyncQueryExecutorService.getAsyncQueryResults(response.getQueryId());
+    assertEquals("SUCCESS", asyncQueryResults.getStatus());
+    assertNull(asyncQueryResults.getError());
+
+    // TODO: cancel?
+    // 3.cancel
+    IllegalArgumentException exception =
+        assertThrows(
+            IllegalArgumentException.class,
+            () -> asyncQueryExecutorService.cancelQuery(response.getQueryId()));
+    assertEquals("can't cancel index management query", exception.getMessage());
   }
 
   /**

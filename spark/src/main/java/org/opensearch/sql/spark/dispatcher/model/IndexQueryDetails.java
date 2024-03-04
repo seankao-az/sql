@@ -27,6 +27,10 @@ public class IndexQueryDetails {
   // materialized view special case where
   // table name and mv name are combined.
   private String mvName;
+  // TODO: too many special cases?
+  // special case for show flint indexes where
+  // only catalog and database is provided, not table name
+  private String catalogDb;
   private FlintIndexType indexType;
 
   private IndexQueryDetails() {}
@@ -66,6 +70,11 @@ public class IndexQueryDetails {
 
     public IndexQueryDetailsBuilder mvName(String mvName) {
       indexQueryDetails.mvName = mvName;
+      return this;
+    }
+
+    public IndexQueryDetailsBuilder catalogDb(String catalogDb) {
+      indexQueryDetails.catalogDb = catalogDb;
       return this;
     }
 
